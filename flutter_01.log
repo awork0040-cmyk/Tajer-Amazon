@@ -1,0 +1,77 @@
+Flutter crash report.
+Please report a bug at https://github.com/flutter/flutter/issues.
+
+## command
+
+flutter run -d web-server --web-port 8080 --web-hostname 0.0.0.0
+
+## exception
+
+SocketException: SocketException: Error event raised in event handler : error condition has been reset, port = 0
+
+```
+#0      _NativeSocket.multiplex (dart:io-patch/socket_patch.dart:1767:30)
+#1      _RawReceivePort._handleMessage (dart:isolate-patch/isolate_patch.dart:192:12)
+```
+
+## flutter doctor
+
+```
+[!] Flutter (Channel [user-branch], 3.47.9, on Linux
+    6.6.127-android15-8-p87b1ce1-abogkiS938BXXSDDZJ1-4k, locale en_US.UTF-8) [120ms]
+    ! Flutter version 3.47.9 on channel [user-branch] at /data/data/com.termux/files/usr/opt/flutter
+      Currently on an unknown channel. Run `flutter channel` to switch to an official channel.
+      If that doesn't fix the issue, try deleting the 'bin/cache/flutter.version.json' file in your
+      Flutter SDK directory and then reinstall Flutter by following instructions at
+      https://flutter.dev/setup.
+    ! Warning: `flutter` on your path resolves to /data/data/com.termux/files/usr/bin/flutter, which
+      is not inside your current Flutter SDK checkout at
+      /data/data/com.termux/files/usr/opt/flutter. Consider adding
+      /data/data/com.termux/files/usr/opt/flutter/bin to the front of your path.
+    ! Warning: `dart` on your path resolves to /data/data/com.termux/files/usr/bin/dart, which is
+      not inside your current Flutter SDK checkout at /data/data/com.termux/files/usr/opt/flutter.
+      Consider adding /data/data/com.termux/files/usr/opt/flutter/bin to the front of your path.
+    • Upstream repository https://github.com/flutter/flutter.git
+    • Framework revision c197ca5199 (11 days ago), 2026-10-29 10:10:20 -0400
+    • Engine revision 89c39edfdf
+    • Dart version 3.13.7
+    • DevTools version 2.60.0
+    • Feature flags: enable-web, enable-linux-desktop, enable-macos-desktop, enable-windows-desktop,
+      enable-android, enable-ios, cli-animations, enable-native-assets, enable-record-use,
+      enable-swift-package-manager, omit-legacy-version-file, enable-lldb-debugging,
+      enable-uiscene-migration, enable-riscv64
+    • If those were intentional, you can disregard the above warnings; however it is recommended to
+      use "git" directly to perform update checks and upgrades.
+
+[✗] Android toolchain - develop for Android devices [214ms]
+    ✗ Unable to locate Android SDK.
+      Install Android Studio from: https://developer.android.com/studio/index.html
+      On first launch it will assist you in installing the Android SDK components.
+      (or visit https://flutter.dev/to/linux-android-setup for detailed instructions).
+      If the Android SDK has been installed to a custom location, please use
+      `flutter config --android-sdk` to update to that location.
+
+
+[✗] Chrome - develop for the web (Cannot find Chrome executable at google-chrome) [17ms]
+    ! Cannot find Chrome. Try setting CHROME_EXECUTABLE to a Chrome executable.
+
+[✗] Linux toolchain - develop for Linux desktop [501ms]
+    • clang version 21.1.8
+    ✗ CMake is required for Linux development.
+      It is likely available from your distribution (e.g.: apt install cmake), or can be downloaded
+      from https://cmake.org/download/
+    • ninja version 1.13.2
+    ✗ pkg-config is required for Linux development.
+      It is likely available from your distribution (e.g.: apt install pkg-config), or can be
+      downloaded from https://www.freedesktop.org/wiki/Software/pkg-config/
+
+[✓] Connected device (2 available) [206ms]
+    • Linux (desktop)  • linux      • linux-arm64    • Linux
+      6.6.127-android15-8-p87b1ce1-abogkiS938BXXSDDZJ1-4k
+    • Web Server (web) • web-server • web-javascript • Flutter Tools
+
+[✓] Network resources [1,326ms]
+    • All expected network resources are available.
+
+! Doctor found issues in 4 categories.
+```

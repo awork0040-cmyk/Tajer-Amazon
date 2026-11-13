@@ -23,11 +23,14 @@ jobs:
       with:
         channel: 'stable'
         
+    - name: Update Android Folder
+      run: flutter create . --platforms=android
+      
     - name: Install dependencies
       run: flutter pub get
       
     - name: Build APK
-      run: flutter build apk --release --verbose --android-skip-build-dependency-validation
+      run: flutter build apk --release
       
     - name: Upload APK
       uses: actions/upload-artifact@v4
