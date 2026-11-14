@@ -15,13 +15,9 @@ subprojects {
     project.layout.buildDirectory.value(newSubprojectBuildDir)
 }
 
-subprojects {
-    project.evaluationDependsOn(":app")
-}
-
+// 1. إجبار المكتبات على استخدام compileSdk 36 (يجب أن يكون قبل evaluationDependsOn)
 subprojects {
     afterEvaluate {
-        // التحقق مما إذا كان المشروع الفرعي هو تطبيق أو مكتبة أندرويد
         val isAndroid = plugins.hasPlugin("com.android.application") || plugins.hasPlugin("com.android.library")
         if (isAndroid) {
             val android = extensions.findByName("android") as? BaseExtension
@@ -30,6 +26,11 @@ subprojects {
             }
         }
     }
+}
+
+// 2. هذا السطر يجب أن يكون في النهاية
+subprojects {
+    project.evaluationDependsOn(":app")
 }
 
 tasks.register<Delete>("clean") {
