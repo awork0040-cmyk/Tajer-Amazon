@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import '../utils/constants.dart';
 import 'printer_settings_screen.dart';
-import 'sounds_vibration_screen.dart';
 import 'store_name_screen.dart';
 import 'data_management_screen.dart';
 import 'app_info_screen.dart';
@@ -15,9 +14,7 @@ class SettingsScreen extends StatelessWidget {
       color: color ?? kSurfaceColor,
       borderRadius: BorderRadius.circular(radius),
       border: Border.all(color: Colors.white.withOpacity(0.05), width: 1),
-      boxShadow: [
-        BoxShadow(color: Colors.black.withOpacity(0.5), blurRadius: 10, offset: const Offset(0, 5)),
-      ],
+      boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.5), blurRadius: 10, offset: const Offset(0, 5))],
     );
   }
 
@@ -87,15 +84,6 @@ class SettingsScreen extends StatelessWidget {
                 icon: Icons.print,
                 color: const Color(0xFF4CAF50),
                 onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PrinterSettingsScreen())),
-              ),
-              const SizedBox(height: 12),
-              _buildListCard(
-                context: context,
-                title: 'الأصوات والاهتزاز',
-                subtitle: 'التحكم في صوت المسح والاهتزاز',
-                icon: Icons.volume_up,
-                color: const Color(0xFFFF9800),
-                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SoundsVibrationScreen())),
               ),
               const SizedBox(height: 12),
               _buildListCard(
