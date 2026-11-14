@@ -22,3 +22,16 @@ subprojects {
 tasks.register<Delete>("clean") {
     delete(rootProject.layout.buildDirectory)
 }
+subprojects {
+    afterEvaluate {
+        if (plugins.hasPlugin("com.android.library") || plugins.hasPlugin("com.android.application")) {
+            extensions.findByName("android")?.let {
+                try {
+                    it.javaClass.getMethod("setCompileSdkVersion", Int::class.javaPrimitiveType).invoke(it, 36)
+                } catch (e: Exception) {
+                    // ignore
+                }
+            }
+        }
+    }
+}
