@@ -22,3 +22,26 @@ subprojects {
 tasks.register<Delete>("clean") {
     delete(rootProject.layout.buildDirectory)
 }
+subprojects {
+    afterEvaluate {
+        if (extensions.findByName("android") != null) {
+            extensions.configure<com.android.build.gradle.BaseExtension>("android") {
+                compileSdkVersion(36)
+            }
+        }
+    }
+}
+subprojects {
+    afterEvaluate {
+        val ext = extensions.findByName("android") ?: return@afterEvaluate
+        val cs = providers.gradleProperty("flutter.compileSdkVersion").orNull?.toInt()
+        val ts = providers.gradleProperty("flutter.targetSdkVersion").orNull?.toInt()
+        @Suppress("UNCHECKED_CAST")
+        (ext as? com.android.build.gradle.BaseExtension)?.apply {
+            if (cs != null) setCompileSdkVersion(cs)
+            defaultConfig {
+                if (ts != null) targetSdkVersion(ts)
+            }
+        }
+    }
+}
