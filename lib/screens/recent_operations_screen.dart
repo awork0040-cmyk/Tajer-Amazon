@@ -4,6 +4,7 @@ import '../utils/constants.dart';
 import '../models/operation_model.dart';
 import '../services/data_service.dart';
 import '../widgets/animated_list_item.dart';
+import 'scanner_screen.dart';
 
 class RecentOperationsScreen extends StatefulWidget {
   const RecentOperationsScreen({Key? key}) : super(key: key);
@@ -29,6 +30,17 @@ class _RecentOperationsScreenState extends State<RecentOperationsScreen> {
     ));
   }
 
+  Future<void> _openScanner() async {
+    final serial = await Navigator.push<String>(
+      context,
+      MaterialPageRoute(builder: (_) => const ScannerScreen()),
+    );
+    if (serial != null && serial.isNotEmpty) {
+      _searchController.text = serial;
+      setState(() => _searchQuery = serial);
+    }
+  }
+
   void _showOptionsSheet(Operation op) {
     showModalBottomSheet(
       context: context,
@@ -51,10 +63,36 @@ class _RecentOperationsScreenState extends State<RecentOperationsScreen> {
                 const SizedBox(height: 8),
                 const Divider(color: Colors.white12, thickness: 0.5, height: 1),
                 const SizedBox(height: 8),
-                _buildSheetItem(icon: Icons.edit, title: 'تعديل العملية', iconColor: const Color(0xFFF0883E), textColor: Colors.white, onTap: () { Navigator.pop(context); _showEditDialog(op); }),
-                _buildSheetItem(icon: Icons.print, title: 'إعادة طباعة', iconColor: const Color(0xFF3FB950), textColor: Colors.white, onTap: () { Navigator.pop(context); _showSnack('إعادة الطباعة ستُبرمج لاحقاً', kPrimaryDark); }),
-                _buildSheetItem(icon: Icons.copy, title: 'نسخ رقم التسلسل', iconColor: kPrimary, textColor: Colors.white, onTap: () { Clipboard.setData(ClipboardData(text: op.serial)); Navigator.pop(context); _showSnack('تم نسخ التسلسل', kPrimaryDark); }),
-                _buildSheetItem(icon: Icons.delete_outline, title: 'حذف', iconColor: Colors.red, textColor: Colors.red, onTap: () { Navigator.pop(context); _confirmDelete(op); }),
+                _buildSheetItem(
+                  icon: Icons.edit,
+                  title: 'تعديل السعر',
+                  iconColor: kPrimary,
+                  textColor: Colors.white,
+                  onTap: () {
+                    Navigator.pop(context);
+                    _showEditDialog(op);
+                  },
+                ),
+                _buildSheetItem(
+                  icon: Icons.print,
+                  title: 'إعادة طباعة',
+                  iconColor: kPrimary,
+                  textColor: Colors.white,
+                  onTap: () {
+                    Navigator.pop(context);
+                    _showSnack('إعادة الطباعة ستُبرمج لاحقاً', kPrimaryDark);
+                  },
+                ),
+                _buildSheetItem(
+                  icon: Icons.delete_outline,
+                  title: 'حذف',
+                  iconColor: Colors.red,
+                  textColor: Colors.red,
+                  onTap: () {
+                    Navigator.pop(context);
+                    _confirmDelete(op);
+                  },
+                ),
                 const SizedBox(height: 16),
               ],
             ),
@@ -87,12 +125,12 @@ class _RecentOperationsScreenState extends State<RecentOperationsScreen> {
       builder: (ctx) => AlertDialog(
         backgroundColor: kSurfaceColor,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-        title: const Text('تعديل العملية', style: TextStyle(color: kTextPrimary, fontSize: 18, fontWeight: FontWeight.bold), textAlign: TextAlign.center),
+        title: const Text('تعديل السعر', style: TextStyle(color: kTextPrimary, fontSize: 18, fontWeight: FontWeight.bold), textAlign: TextAlign.center),
         content: TextField(
           controller: amountController,
           keyboardType: TextInputType.number,
           style: const TextStyle(color: kTextPrimary),
-          decoration: const InputDecoration(labelText: 'المبلغ الجديد', labelStyle: TextStyle(color: kTextSecondary)),
+          decoration: const InputDecoration(labelText: 'السعر الجديد', labelStyle: TextStyle(color: kTextSecondary)),
         ),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('إلغاء', style: TextStyle(color: kTextSecondary))),
@@ -213,23 +251,59 @@ class _RecentOperationsScreenState extends State<RecentOperationsScreen> {
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 10),
                   child: Container(
+                    height: 48,
                     decoration: _neumorphicDecoration(),
-                    child: TextField(
-                      controller: _searchController,
-                      style: const TextStyle(color: kTextPrimary, fontSize: 14),
-                      onChanged: (v) => setState(() => _searchQuery = v),
-                      decoration: InputDecoration(
-                        hintText: 'ابحث بالاسم أو رقم التسلسل...',
-                        hintStyle: const TextStyle(color: kTextSecondary, fontSize: 13),
-                        prefixIcon: const Icon(Icons.search, color: kTextSecondary, size: 20),
-                        suffixIcon: _searchQuery.isEmpty ? null : IconButton(
-                          icon: const Icon(Icons.close, color: kTextSecondary, size: 16),
-                          onPressed: () { _searchController.clear(); setState(() => _searchQuery = ''); },
+                    child: Row(
+                      children: [
+                        // النصف الأيمن (في RTL): زر المسح
+                        Material(
+                          color: Colors.transparent,
+                          child: InkWell(
+                            borderRadius: const BorderRadius.horizontal(right: Radius.circular(16)),
+                            onTap: _openScanner,
+                            child: Container(
+                              width: 140,
+                              height: 48,
+                              alignment: Alignment.center,
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: const [
+                                  Icon(Icons.qr_code_scanner, color: kPrimary, size: 20),
+                                  SizedBox(width: 6),
+                                  Text('مسح QR', style: TextStyle(color: kPrimary, fontSize: 13, fontWeight: FontWeight.bold)),
+                                ],
+                              ),
+                            ),
+                          ),
                         ),
-                        border: InputBorder.none,
-                        contentPadding: const EdgeInsets.symmetric(vertical: 14),
-                        isDense: true,
-                      ),
+                        // فاصل
+                        Container(width: 1, height: 24, color: Colors.white12),
+                        // النصف الأيسر: حقل البحث
+                        Expanded(
+                          child: TextField(
+                            controller: _searchController,
+                            style: const TextStyle(color: kTextPrimary, fontSize: 14),
+                            onChanged: (v) => setState(() => _searchQuery = v),
+                            decoration: InputDecoration(
+                              hintText: 'ابحث بالاسم أو التسلسل...',
+                              hintStyle: const TextStyle(color: kTextSecondary, fontSize: 13),
+                              prefixIcon: const Icon(Icons.search, color: kTextSecondary, size: 20),
+                              suffixIcon: _searchQuery.isEmpty
+                                  ? null
+                                  : IconButton(
+                                      icon: const Icon(Icons.close, color: kTextSecondary, size: 16),
+                                      onPressed: () {
+                                        _searchController.clear();
+                                        setState(() => _searchQuery = '');
+                                      },
+                                    ),
+                              border: InputBorder.none,
+                              contentPadding: const EdgeInsets.symmetric(vertical: 14),
+                              isDense: true,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ),

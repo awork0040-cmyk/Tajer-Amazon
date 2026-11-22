@@ -93,22 +93,6 @@ class _CustomerListScreenState extends State<CustomerListScreen> {
     return buffer.toString();
   }
 
-  /// ترتيب MRU: الأحدث شراءً أولاً، ثم الجدد حسب ترتيب الإضافة.
-  List<MockCustomer> _sortByRecency(List<MockCustomer> list) {
-    final sorted = List<MockCustomer>.from(list);
-    sorted.sort((a, b) {
-      if (a.lastUsedAt != null && b.lastUsedAt != null) {
-        return b.lastUsedAt!.compareTo(a.lastUsedAt!);
-      }
-      if (a.lastUsedAt != null && b.lastUsedAt == null) return -1;
-      if (a.lastUsedAt == null && b.lastUsedAt != null) return 1;
-      final na = int.tryParse(a.id.replaceFirst('c', '')) ?? 0;
-      final nb = int.tryParse(b.id.replaceFirst('c', '')) ?? 0;
-      return na.compareTo(nb);
-    });
-    return sorted;
-  }
-
   @override
   Widget build(BuildContext context) {
     return Directionality(
@@ -138,8 +122,9 @@ class _CustomerListScreenState extends State<CustomerListScreen> {
         body: ListenableBuilder(
           listenable: DataService.instance,
           builder: (context, _) {
-            final customers = _sortByRecency(
-              DataService.instance.searchCustomers(_searchQuery, onlyVip: _filterType == 1),
+            final customers = DataService.instance.searchCustomersByRecency(
+              _searchQuery,
+              onlyVip: _filterType == 1,
             );
             return Column(
               children: [

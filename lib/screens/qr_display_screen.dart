@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../utils/constants.dart';
-import '../models/customer_model.dart';
 import '../models/operation_model.dart';
 import '../services/data_service.dart';
 
@@ -23,16 +22,6 @@ class _QrDisplayScreenState extends State<QrDisplayScreen> {
   Operation? _scannedOp;
   bool _flashOn = false;
 
-  BoxDecoration _neumorphicDecoration({Color? color, double radius = 16}) {
-    return BoxDecoration(
-      color: color ?? kSurfaceColor,
-      borderRadius: BorderRadius.circular(radius),
-      border: Border.all(color: Colors.white.withOpacity(0.05), width: 1),
-      boxShadow: [
-        BoxShadow(color: Colors.black.withOpacity(0.5), blurRadius: 10, offset: const Offset(0, 5)),
-      ],
-    );
-  }
 
   Widget _buildFloatingButton({required IconData icon, required VoidCallback onTap}) {
     return Container(

@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import '../utils/constants.dart';
-import '../widgets/animated_list_item.dart';
 import '../models/customer_model.dart';
 import '../models/operation_model.dart';
 import '../services/data_service.dart';
 import 'add_customer_screen.dart';
+import 'customer_history_screen.dart';
 
 class CustomerProfileScreen extends StatefulWidget {
   final String customerId;
@@ -15,41 +15,25 @@ class CustomerProfileScreen extends StatefulWidget {
 }
 
 class _CustomerProfileScreenState extends State<CustomerProfileScreen> {
+  static const Color _kGold = Color(0xFFFFC107);
+  static const Color _kRed = Color(0xFFE53935);
+  static const double _gap = 14;
+  static const double _pad = 18;
+
   Future<void> _openEditScreen(MockCustomer customer) async {
     final updated = await Navigator.push<MockCustomer>(
       context,
       MaterialPageRoute(builder: (_) => AddCustomerScreen(customerToEdit: customer, isFullVersion: true)),
     );
-    if (updated != null) {
-      DataService.instance.updateCustomer(updated);
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('تم تحديث بيانات العميل بنجاح'), backgroundColor: Colors.green, behavior: SnackBarBehavior.floating, duration: Duration(seconds: 1)),
-      );
-    }
+    if (updated != null) DataService.instance.updateCustomer(updated);
   }
 
-  void _toggleVip() {
-    DataService.instance.toggleVip(widget.customerId);
-    final c = DataService.instance.getCustomerById(widget.customerId);
-    if (c != null && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(c.isVip ? 'تم تمييز العميل كـ VIP' : 'تم إزالة تمييز VIP'),
-          backgroundColor: c.isVip ? Colors.amber : kTextSecondary,
-          behavior: SnackBarBehavior.floating,
-          duration: const Duration(seconds: 1),
-        ),
-      );
-    }
-  }
-
-  BoxDecoration _neumorphicDecoration({Color? color, double radius = 16}) {
+  BoxDecoration _cardDecoration() {
     return BoxDecoration(
-      color: color ?? kSurfaceColor,
-      borderRadius: BorderRadius.circular(radius),
-      border: Border.all(color: Colors.white.withOpacity(0.05), width: 1),
-      boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.5), blurRadius: 10, offset: const Offset(0, 5))],
+      color: kSurfaceColor,
+      borderRadius: BorderRadius.circular(16),
+      border: Border.all(color: Colors.white.withOpacity(0.06), width: 1),
+      boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.4), blurRadius: 12, offset: const Offset(0, 6))],
     );
   }
 
@@ -83,6 +67,10 @@ class _CustomerProfileScreenState extends State<CustomerProfileScreen> {
     return buffer.toString();
   }
 
+  void _toggleVip() {
+    DataService.instance.toggleVip(widget.customerId);
+  }
+
   void _showDeleteDialog(MockCustomer customer) {
     showDialog(
       context: context,
@@ -90,11 +78,7 @@ class _CustomerProfileScreenState extends State<CustomerProfileScreen> {
         backgroundColor: kSurfaceColor,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
         title: const Text('حذف العميل', style: TextStyle(color: kTextPrimary, fontSize: 18, fontWeight: FontWeight.bold), textAlign: TextAlign.center),
-        content: Text(
-          'هل أنت متأكد من حذف العميل (${customer.primaryName})؟\nسيتم نقله مع جميع عملياته إلى سلة المحذوفات لمدة 30 يوماً.',
-          style: const TextStyle(color: kTextSecondary, fontSize: 14),
-          textAlign: TextAlign.center,
-        ),
+        content: Text('هل أنت متأكد من حذف العميل (${customer.primaryName})؟\nسيتم نقله مع جميع عملياته إلى سلة المحذوفات.', style: const TextStyle(color: kTextSecondary, fontSize: 14, height: 1.6), textAlign: TextAlign.center),
         actionsPadding: const EdgeInsets.only(bottom: 16, left: 16, right: 16),
         actions: [
           Row(
@@ -113,68 +97,12 @@ class _CustomerProfileScreenState extends State<CustomerProfileScreen> {
                     Navigator.pop(ctx);
                     DataService.instance.deleteCustomer(customer.id);
                     Navigator.pop(context);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('تم نقل العميل لسلة المحذوفات'), backgroundColor: Colors.red, behavior: SnackBarBehavior.floating, duration: Duration(seconds: 1)),
-                    );
                   },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.red,
-                    foregroundColor: Colors.white,
-                    elevation: 0,
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  ),
-                  child: const Text('حذف', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                  style: ElevatedButton.styleFrom(backgroundColor: _kRed, padding: const EdgeInsets.symmetric(vertical: 14), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), elevation: 0),
+                  child: const Text('حذف', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15)),
                 ),
               ),
             ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Color _statusColor(OperationStatus s) {
-    switch (s) {
-      case OperationStatus.unconfirmed: return const Color(0xFFF0883E);
-      case OperationStatus.confirmed: return const Color(0xFF3FB950);
-      case OperationStatus.delivered: return kTextSecondary;
-      case OperationStatus.deleted: return Colors.red;
-    }
-  }
-
-  String _statusLabel(OperationStatus s) {
-    switch (s) {
-      case OperationStatus.unconfirmed: return 'غير مؤكدة';
-      case OperationStatus.confirmed: return 'مؤكدة';
-      case OperationStatus.delivered: return 'تم التوصيل';
-      case OperationStatus.deleted: return 'محذوفة';
-    }
-  }
-
-  Widget _buildOperationRow(Operation op) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(op.serial, style: const TextStyle(color: kTextPrimary, fontSize: 13, fontWeight: FontWeight.bold)),
-                const SizedBox(height: 2),
-                Text('${_formatAmount(op.amount)} د.ع', style: const TextStyle(color: kTextSecondary, fontSize: 12)),
-              ],
-            ),
-          ),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-            decoration: BoxDecoration(
-              color: _statusColor(op.status).withOpacity(0.15),
-              borderRadius: BorderRadius.circular(6),
-              border: Border.all(color: _statusColor(op.status).withOpacity(0.3)),
-            ),
-            child: Text(_statusLabel(op.status), style: TextStyle(color: _statusColor(op.status), fontSize: 11, fontWeight: FontWeight.bold)),
           ),
         ],
       ),
@@ -190,162 +118,235 @@ class _CustomerProfileScreenState extends State<CustomerProfileScreen> {
         builder: (context, _) {
           final customer = DataService.instance.getCustomerById(widget.customerId);
           if (customer == null) {
-            return const Scaffold(
-              backgroundColor: kScaffoldBg,
-              body: Center(child: Text('العميل غير موجود', style: TextStyle(color: kTextSecondary))),
-            );
+            return const Scaffold(backgroundColor: kScaffoldBg, body: Center(child: Text('العميل غير موجود', style: TextStyle(color: kTextSecondary))));
           }
-          final customerOps = DataService.instance.getOperationsForCustomer(customer.id);
-          customerOps.sort((a, b) => b.createdAt.compareTo(a.createdAt));
-          
+
+          final delivered = DataService.instance.getOperationsForCustomer(customer.id)
+              .where((o) => o.status == OperationStatus.delivered).toList();
+          final deliveredCount = delivered.length;
+          final deliveredTotal = delivered.fold<int>(0, (s, o) => s + o.amount);
+
           return Scaffold(
             backgroundColor: kScaffoldBg,
             appBar: AppBar(
               backgroundColor: Colors.transparent,
-              elevation: 0,
-              centerTitle: true,
-              toolbarHeight: 70,
-              leadingWidth: 70,
+              elevation: 0, centerTitle: true, toolbarHeight: 70, leadingWidth: 70,
               leading: Center(child: _buildFloatingButton(icon: Icons.arrow_back, onTap: () => Navigator.pop(context))),
-              title: Text(customer.primaryName, style: const TextStyle(color: kTextPrimary, fontWeight: FontWeight.bold, fontSize: 16)),
+              title: const SizedBox.shrink(),
               actions: [
-                IconButton(icon: const Icon(Icons.edit, color: kPrimary, size: 22), onPressed: () => _openEditScreen(customer)),
+                Padding(
+                  padding: const EdgeInsets.only(left: 12),
+                  child: IconButton(
+                    icon: const Icon(Icons.edit, color: kPrimary, size: 22),
+                    tooltip: 'تعديل البيانات',
+                    onPressed: () => _openEditScreen(customer),
+                  ),
+                ),
               ],
             ),
             body: SafeArea(
               child: ListView(
-                padding: const EdgeInsets.all(16.0),
+                padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
                 children: [
-                  AnimatedListItem(
-                    index: 0,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(vertical: 20),
-                      decoration: _neumorphicDecoration(),
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: Column(
-                              children: [
-                                const Text('عدد العمليات', style: TextStyle(color: kTextSecondary, fontSize: 13)),
-                                const SizedBox(height: 6),
-                                Text('${customer.totalOps}', style: const TextStyle(color: kTextPrimary, fontSize: 22, fontWeight: FontWeight.bold)),
-                              ],
-                            ),
+                  // ═══ 1. الإحصائيات (تم التوصيل) ═══
+                  Container(
+                    padding: const EdgeInsets.symmetric(vertical: 22),
+                    decoration: _cardDecoration(),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Column(
+                            children: [
+                              const Text('العمليات المكتملة', style: TextStyle(color: kTextSecondary, fontSize: 12, fontWeight: FontWeight.w500)),
+                              const SizedBox(height: 8),
+                              Text('$deliveredCount', style: const TextStyle(color: kTextPrimary, fontSize: 26, fontWeight: FontWeight.bold)),
+                            ],
                           ),
-                          Container(width: 1, height: 40, color: Colors.white12),
-                          Expanded(
-                            child: Column(
-                              children: [
-                                const Text('المبلغ الإجمالي', style: TextStyle(color: kTextSecondary, fontSize: 13)),
-                                const SizedBox(height: 6),
-                                Text('${_formatAmount(customer.totalAmount)} د.ع', style: const TextStyle(color: kTextPrimary, fontSize: 22, fontWeight: FontWeight.bold)),
-                              ],
-                            ),
+                        ),
+                        Container(width: 1, height: 46, color: Colors.white12),
+                        Expanded(
+                          child: Column(
+                            children: [
+                              const Text('الإجمالي', style: TextStyle(color: kTextSecondary, fontSize: 12, fontWeight: FontWeight.w500)),
+                              const SizedBox(height: 8),
+                              Text('${_formatAmount(deliveredTotal)} د.ع', style: const TextStyle(color: kTextPrimary, fontSize: 20, fontWeight: FontWeight.bold)),
+                            ],
                           ),
-                        ],
-                      ),
+                        ),
+                      ],
                     ),
                   ),
-                  const SizedBox(height: 12),
-                  if (customerOps.isNotEmpty)
-                    AnimatedListItem(
-                      index: 1,
-                      child: _buildInfoCard(
-                        title: 'العمليات (${customerOps.length})',
-                        icon: Icons.list_alt,
-                        children: customerOps.map(_buildOperationRow).toList(),
-                      ),
-                    ),
-                  const SizedBox(height: 12),
-                  if (customer.primaryPhone != null || customer.secondaryPhones.isNotEmpty || customer.address != null)
-                    AnimatedListItem(
-                      index: 2,
-                      child: _buildInfoCard(
-                        title: 'معلومات الاتصال',
-                        icon: Icons.contact_phone,
-                        children: [
-                          if (customer.primaryPhone != null) _buildInfoRow('الهاتف الأساسي', customer.primaryPhone!),
-                          if (customer.secondaryPhones.isNotEmpty) _buildInfoRow('الهواتف الثانوية', customer.secondaryPhones.join('، ')),
-                          if (customer.address != null) _buildInfoRow('العنوان', customer.address!),
-                        ],
-                      ),
-                    ),
-                  const SizedBox(height: 12),
-                  if (customer.aliases.isNotEmpty)
-                    AnimatedListItem(
-                      index: 3,
-                      child: _buildInfoCard(
-                        title: 'الأسماء البديلة',
-                        icon: Icons.badge,
-                        children: [
+                  const SizedBox(height: _gap),
+
+                  // ═══ 2. بطاقة المعلومات ═══
+                  Container(
+                    padding: const EdgeInsets.all(_pad),
+                    decoration: _cardDecoration(),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // الاسم
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Text(customer.primaryName, style: const TextStyle(color: kTextPrimary, fontSize: 20, fontWeight: FontWeight.bold)),
+                            ),
+                            if (customer.isVip)
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                                decoration: BoxDecoration(
+                                  color: _kGold.withOpacity(0.15),
+                                  borderRadius: BorderRadius.circular(8),
+                                  border: Border.all(color: _kGold.withOpacity(0.5)),
+                                ),
+                                child: const Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(Icons.star, color: _kGold, size: 14),
+                                    SizedBox(width: 4),
+                                    Text('VIP', style: TextStyle(color: _kGold, fontSize: 11, fontWeight: FontWeight.bold)),
+                                  ],
+                                ),
+                              ),
+                          ],
+                        ),
+
+                        // الأسماء البديلة
+                        if (customer.aliases.isNotEmpty) ...[
+                          const SizedBox(height: 8),
                           Wrap(
-                            spacing: 8, runSpacing: 8,
-                            children: customer.aliases.map((name) => Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                              decoration: BoxDecoration(color: kPrimary.withOpacity(0.15), borderRadius: BorderRadius.circular(8), border: Border.all(color: kPrimary.withOpacity(0.3))),
-                              child: Text(name, style: const TextStyle(color: kPrimary, fontWeight: FontWeight.bold, fontSize: 13)),
+                            spacing: 6,
+                            runSpacing: 6,
+                            children: customer.aliases.map((a) => Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: kPrimary.withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: Text(a, style: const TextStyle(color: kPrimary, fontSize: 12, fontWeight: FontWeight.w500)),
                             )).toList(),
                           ),
                         ],
-                      ),
-                    ),
-                  const SizedBox(height: 12),
-                  if (customer.notes != null && customer.notes!.isNotEmpty)
-                    AnimatedListItem(
-                      index: 4,
-                      child: _buildInfoCard(
-                        title: 'الملاحظات',
-                        icon: Icons.notes,
-                        children: [Text(customer.notes!, style: const TextStyle(color: kTextPrimary, fontSize: 14, height: 1.5))],
-                      ),
-                    ),
-                  const SizedBox(height: 30),
-                  AnimatedListItem(
-                    index: 5,
-                    child: SizedBox(
-                      height: 55,
-                      child: Material(
-                        color: Colors.transparent,
-                        child: InkWell(
-                          borderRadius: BorderRadius.circular(16),
-                          onTap: _toggleVip,
-                          child: Container(
-                            decoration: BoxDecoration(
-                              color: customer.isVip ? Colors.amber.withOpacity(0.15) : kSurfaceColor,
-                              borderRadius: BorderRadius.circular(16),
-                              border: Border.all(color: customer.isVip ? Colors.amber.withOpacity(0.5) : Colors.white.withOpacity(0.05), width: 1.5),
-                              boxShadow: [BoxShadow(color: customer.isVip ? Colors.amber.withOpacity(0.2) : Colors.black.withOpacity(0.5), blurRadius: 10, offset: const Offset(0, 5))],
-                            ),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(customer.isVip ? Icons.star : Icons.star_border, color: customer.isVip ? Colors.amber : kTextSecondary, size: 26),
-                                const SizedBox(width: 8),
-                                Text(customer.isVip ? 'إزالة تمييز VIP' : 'تمييز كعميل VIP', style: TextStyle(color: customer.isVip ? Colors.amber : kTextSecondary, fontSize: 16, fontWeight: FontWeight.bold)),
-                              ],
-                            ),
+
+                        const SizedBox(height: 16),
+                        Container(height: 1, color: Colors.white.withOpacity(0.06)),
+                        const SizedBox(height: 16),
+
+                        // الهاتف
+                        _buildInfoRow(
+                          icon: Icons.phone_outlined,
+                          label: 'رقم الهاتف',
+                          value: (customer.primaryPhone != null && customer.primaryPhone!.isNotEmpty)
+                              ? customer.primaryPhone!
+                              : 'غير محدد',
+                          isEmpty: customer.primaryPhone == null || customer.primaryPhone!.isEmpty,
+                          isLtr: true,
+                        ),
+
+                        // الأرقام الثانوية
+                        if (customer.secondaryPhones.isNotEmpty) ...[
+                          const SizedBox(height: 14),
+                          _buildInfoRow(
+                            icon: Icons.phone_android_outlined,
+                            label: customer.secondaryPhones.length > 1 ? 'أرقام إضافية' : 'رقم إضافي',
+                            value: customer.secondaryPhones.join('  •  '),
+                            isEmpty: false,
+                            isLtr: true,
                           ),
+                        ],
+
+                        // العنوان
+                        const SizedBox(height: 14),
+                        _buildInfoRow(
+                          icon: Icons.location_on_outlined,
+                          label: 'العنوان',
+                          value: (customer.address != null && customer.address!.isNotEmpty) ? customer.address! : 'غير محدد',
+                          isEmpty: customer.address == null || customer.address!.isEmpty,
+                        ),
+
+                        // الملاحظات
+                        const SizedBox(height: 14),
+                        _buildInfoRow(
+                          icon: Icons.notes_outlined,
+                          label: 'الملاحظات',
+                          value: (customer.notes != null && customer.notes!.isNotEmpty) ? customer.notes! : 'لا توجد ملاحظات',
+                          isEmpty: customer.notes == null || customer.notes!.isEmpty,
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: _gap),
+
+                  // ═══ 3. زر VIP ═══
+                  SizedBox(
+                    height: 52,
+                    child: OutlinedButton.icon(
+                      onPressed: _toggleVip,
+                      icon: Icon(customer.isVip ? Icons.star : Icons.star_border, color: _kGold, size: 22),
+                      label: Text(
+                        customer.isVip ? 'إزالة تمييز VIP' : 'تمييز كعميل VIP',
+                        style: const TextStyle(color: _kGold, fontSize: 15, fontWeight: FontWeight.bold),
+                      ),
+                      style: OutlinedButton.styleFrom(
+                        backgroundColor: _kGold.withOpacity(customer.isVip ? 0.15 : 0.08),
+                        side: BorderSide(color: _kGold.withOpacity(customer.isVip ? 0.8 : 0.4), width: 1.5),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: _gap),
+
+                  // ═══ 4. بطاقة السجل ═══
+                  Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(16),
+                      onTap: () => Navigator.push(context, MaterialPageRoute(
+                        builder: (_) => CustomerHistoryScreen(customerId: customer.id, customerName: customer.primaryName),
+                      )),
+                      child: Container(
+                        padding: const EdgeInsets.all(_pad),
+                        decoration: _cardDecoration(),
+                        child: Row(
+                          children: [
+                            Container(
+                              width: 44, height: 44,
+                              decoration: BoxDecoration(color: kPrimary.withOpacity(0.12), borderRadius: BorderRadius.circular(10)),
+                              child: const Icon(Icons.history, color: kPrimary, size: 22),
+                            ),
+                            const SizedBox(width: 12),
+                            const Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text('السجل', style: TextStyle(color: kTextPrimary, fontSize: 15, fontWeight: FontWeight.bold)),
+                                  SizedBox(height: 3),
+                                  Text('عرض العمليات المكتملة', style: TextStyle(color: kTextSecondary, fontSize: 12)),
+                                ],
+                              ),
+                            ),
+                            const Icon(Icons.chevron_left, color: kTextSecondary, size: 22),
+                          ],
                         ),
                       ),
                     ),
                   ),
-                  const SizedBox(height: 12),
-                  AnimatedListItem(
-                    index: 6,
-                    child: SizedBox(
-                      height: 55,
-                      child: OutlinedButton(
-                        onPressed: () => _showDeleteDialog(customer),
-                        style: OutlinedButton.styleFrom(
-                          backgroundColor: Colors.red.withOpacity(0.15),
-                          side: BorderSide(color: Colors.red.withOpacity(0.35), width: 1.5),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                        ),
-                        child: const Text('حذف العميل', style: TextStyle(color: Colors.red, fontSize: 16, fontWeight: FontWeight.bold)),
+                  const SizedBox(height: _gap),
+
+                  // ═══ 5. زر حذف العميل ═══
+                  SizedBox(
+                    height: 52,
+                    child: OutlinedButton.icon(
+                      onPressed: () => _showDeleteDialog(customer),
+                      icon: const Icon(Icons.delete_outline, color: _kRed, size: 20),
+                      label: const Text('حذف العميل', style: TextStyle(color: _kRed, fontSize: 15, fontWeight: FontWeight.bold)),
+                      style: OutlinedButton.styleFrom(
+                        backgroundColor: _kRed.withOpacity(0.1),
+                        side: BorderSide(color: _kRed.withOpacity(0.35), width: 1.5),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                       ),
                     ),
                   ),
-                  const SizedBox(height: 20),
                 ],
               ),
             ),
@@ -355,35 +356,39 @@ class _CustomerProfileScreenState extends State<CustomerProfileScreen> {
     );
   }
 
-  Widget _buildInfoCard({required String title, required IconData icon, required List<Widget> children}) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: _neumorphicDecoration(),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(children: [
-            Icon(icon, color: kTextSecondary, size: 18),
-            const SizedBox(width: 8),
-            Text(title, style: const TextStyle(color: kTextSecondary, fontSize: 13, fontWeight: FontWeight.bold)),
-          ]),
-          const SizedBox(height: 12),
-          ...children,
-        ],
-      ),
-    );
-  }
-
-  Widget _buildInfoRow(String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(width: 100, child: Text(label, style: const TextStyle(color: kTextSecondary, fontSize: 13))),
-          Expanded(child: Text(value, style: const TextStyle(color: kTextPrimary, fontSize: 14, fontWeight: FontWeight.w600))),
-        ],
-      ),
+  Widget _buildInfoRow({
+    required IconData icon,
+    required String label,
+    required String value,
+    required bool isEmpty,
+    bool isLtr = false,
+  }) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(icon, color: kTextSecondary, size: 18),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(label, style: const TextStyle(color: kTextSecondary, fontSize: 11, fontWeight: FontWeight.w600)),
+              const SizedBox(height: 4),
+              Text(
+                value,
+                style: TextStyle(
+                  color: isEmpty ? kTextSecondary.withOpacity(0.6) : kTextPrimary,
+                  fontSize: 14,
+                  fontWeight: isEmpty ? FontWeight.normal : FontWeight.w600,
+                  fontStyle: isEmpty ? FontStyle.italic : FontStyle.normal,
+                  height: 1.4,
+                ),
+                textDirection: isLtr ? TextDirection.ltr : null,
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }

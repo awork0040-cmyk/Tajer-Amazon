@@ -147,18 +147,12 @@ class _QuickSaleScreenState extends State<QuickSaleScreen> {
   }
 
   Future<void> _openCustomerSelection() async {
-    final resultName = await Navigator.push<String>(
+    final result = await Navigator.push<CustomerSelectionResult>(
       context,
       MaterialPageRoute(builder: (_) => const CustomerSelectionScreen()),
     );
-    if (resultName != null && resultName.isNotEmpty) {
-      MockCustomer? found;
-      for (var c in DataService.instance.customers) {
-        if (c.primaryName == resultName) {
-          found = c;
-          break;
-        }
-      }
+    if (result != null && result.id.isNotEmpty) {
+      final found = DataService.instance.getCustomerById(result.id);
       if (found != null) {
         _nameController.text = found.primaryName;
         setState(() {
@@ -166,6 +160,18 @@ class _QuickSaleScreenState extends State<QuickSaleScreen> {
           _showSuggestions = false;
         });
         FocusScope.of(context).unfocus();
+
+        if (result.isNew) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('تم إضافة العميل الجديد: ${found.primaryName}'),
+              backgroundColor: const Color(0xFF3FB950),
+              behavior: SnackBarBehavior.floating,
+              duration: const Duration(seconds: 1),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+          );
+        }
       }
     }
   }
@@ -175,6 +181,19 @@ class _QuickSaleScreenState extends State<QuickSaleScreen> {
   }
 
   void _onGiftPressed() {
+    if (_exactMatchCustomer == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('أضف اسم عميل أولاً لإرسال هدية'),
+          backgroundColor: const Color(0xFFD29922),
+          behavior: SnackBarBehavior.floating,
+          duration: const Duration(seconds: 2),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        ),
+      );
+      return;
+    }
+
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -202,6 +221,7 @@ class _QuickSaleScreenState extends State<QuickSaleScreen> {
                       _amount = '0';
                       _isGift = true;
                     });
+                    _onSaveAndPrint();
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFFD29922),
@@ -220,7 +240,7 @@ class _QuickSaleScreenState extends State<QuickSaleScreen> {
     );
   }
 
-  Future<void> _onSaveAndPrint() async {
+  void _onSaveAndPrint() {
     if (!_canSave) return;
     setState(() => _isSaving = true);
 
@@ -231,8 +251,6 @@ class _QuickSaleScreenState extends State<QuickSaleScreen> {
       isGift: _isGift,
     );
 
-    await Future.delayed(const Duration(milliseconds: 400));
-    if (!mounted) return;
     setState(() {
       _amount = '0';
       _nameController.clear();

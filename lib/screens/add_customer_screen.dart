@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../utils/constants.dart';
 import '../models/customer_model.dart';
+import '../services/data_service.dart';
 
 class AddCustomerScreen extends StatefulWidget {
   final bool isFullVersion;
@@ -24,7 +25,6 @@ class _AddCustomerScreenState extends State<AddCustomerScreen> {
   String? _phoneError;
   bool _isVip = false;
 
-  // لحفظ البيانات الأصلية للمقارنة
   String _initialName = '';
   String _initialAlias = '';
   String _initialPhone = '';
@@ -71,7 +71,6 @@ class _AddCustomerScreenState extends State<AddCustomerScreen> {
     super.dispose();
   }
 
-  // مقارنة الحالية بالأصلية
   bool get _hasChanges {
     return _nameController.text != _initialName ||
            _aliasController.text != _initialAlias ||
@@ -108,20 +107,28 @@ class _AddCustomerScreenState extends State<AddCustomerScreen> {
   }
 
   void _onSave() {
-    setState(() {
-      _nameError = null;
-      _phoneError = null;
+    _nameError = null;
+    _phoneError = null;
 
-      if (_nameController.text.trim().isEmpty) {
-        _nameError = 'اسم العميل مطلوب';
-      }
+    final trimmedName = _nameController.text.trim();
 
-      if (widget.isFullVersion || _phoneController.text.isNotEmpty) {
-        _phoneError = _validatePhone(_phoneController.text.trim());
-      }
+    if (trimmedName.isEmpty) {
+      _nameError = 'اسم العميل مطلوب';
+    } else if (DataService.instance.isPrimaryNameTaken(
+      trimmedName,
+      excludeCustomerId: widget.customerToEdit?.id,
+    )) {
+      _nameError = 'هذا الاسم موجود مسبقاً لعميل آخر. جرّب اسماً مختلفاً، أو أضفه كاسم مستعار.';
+    }
 
-      if (_nameError != null || _phoneError != null) return;
-    });
+    if (widget.isFullVersion || _phoneController.text.isNotEmpty) {
+      _phoneError = _validatePhone(_phoneController.text.trim());
+    }
+
+    if (_nameError != null || _phoneError != null) {
+      setState(() {});
+      return;
+    }
 
     final newCustomer = MockCustomer(
       id: widget.customerToEdit?.id ?? DateTime.now().millisecondsSinceEpoch.toString(),
@@ -166,7 +173,8 @@ class _AddCustomerScreenState extends State<AddCustomerScreen> {
         labelStyle: const TextStyle(color: kTextSecondary),
         floatingLabelStyle: const TextStyle(color: kPrimary),
         errorText: errorText,
-        errorStyle: const TextStyle(color: Colors.red, fontSize: 11),
+        errorStyle: const TextStyle(color: Colors.red, fontSize: 13, height: 1.4),
+        errorMaxLines: 3,
         prefixIcon: icon != null ? Icon(icon, color: kTextSecondary, size: 20) : null,
         border: InputBorder.none,
         contentPadding: const EdgeInsets.symmetric(vertical: 12),
@@ -206,7 +214,7 @@ class _AddCustomerScreenState extends State<AddCustomerScreen> {
                       const Divider(color: Colors.white12, height: 1, thickness: 0.5),
                       _buildInlineField(
                         controller: _phoneController, 
-                        label: widget.isFullVersion ? 'رقم الهاتف الأساسي *' : 'رقم الهاتف (اختياري)', 
+                        label: widget.isFullVersion ? 'رقم الهاتف الأساسي *' : 'رقم الهاتف', 
                         icon: Icons.phone, 
                         keyboardType: TextInputType.phone,
                         errorText: _phoneError,

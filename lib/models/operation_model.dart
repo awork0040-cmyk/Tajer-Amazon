@@ -1,6 +1,7 @@
 enum OperationStatus {
   unconfirmed,
   confirmed,
+  outForDelivery,
   delivered,
   deleted,
 }

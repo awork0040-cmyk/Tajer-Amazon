@@ -1,9 +1,15 @@
 import 'package:flutter/material.dart';
 import '../utils/constants.dart';
-import '../widgets/animated_list_item.dart';
 import '../models/customer_model.dart';
 import '../services/data_service.dart';
+import '../widgets/animated_list_item.dart';
 import 'add_customer_screen.dart';
+
+class CustomerSelectionResult {
+  final String id;
+  final bool isNew;
+  const CustomerSelectionResult({required this.id, this.isNew = false});
+}
 
 class CustomerSelectionScreen extends StatefulWidget {
   const CustomerSelectionScreen({Key? key}) : super(key: key);
@@ -30,43 +36,8 @@ class _CustomerSelectionScreenState extends State<CustomerSelectionScreen> {
     if (newCustomer != null) {
       DataService.instance.addCustomer(newCustomer);
       if (!mounted) return;
-      Navigator.pop(context, newCustomer.primaryName);
+      Navigator.pop(context, CustomerSelectionResult(id: newCustomer.id, isNew: true));
     }
-  }
-
-  void _showAddPhoneDialog(MockCustomer customer) {
-    final phoneController = TextEditingController();
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: kSurfaceColor,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-        title: const Text('إضافة رقم هاتف', style: TextStyle(color: kTextPrimary, fontSize: 16)),
-        content: TextField(
-          controller: phoneController,
-          keyboardType: TextInputType.phone,
-          style: const TextStyle(color: kTextPrimary),
-          decoration: const InputDecoration(hintText: '07XX XXX XXXX', hintStyle: TextStyle(color: kTextSecondary)),
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('إلغاء', style: TextStyle(color: kTextSecondary))),
-          TextButton(
-            onPressed: () {
-              final phone = phoneController.text.trim();
-              Navigator.pop(ctx);
-              if (phone.isNotEmpty) {
-                DataService.instance.updateCustomer(customer.copyWith(primaryPhone: phone));
-                if (!mounted) return;
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: const Text('تم حفظ الرقم'), backgroundColor: Colors.green, duration: const Duration(seconds: 1)),
-                );
-              }
-            },
-            child: const Text('حفظ', style: TextStyle(color: kPrimary)),
-          ),
-        ],
-      ),
-    );
   }
 
   BoxDecoration _neumorphicDecoration({Color? color, double radius = 16}) {
@@ -78,32 +49,6 @@ class _CustomerSelectionScreenState extends State<CustomerSelectionScreen> {
     );
   }
 
-  String _formatAmount(int amount) {
-    final s = amount.toString();
-    final buffer = StringBuffer();
-    for (int i = 0; i < s.length; i++) {
-      if (i > 0 && (s.length - i) % 3 == 0) buffer.write(',');
-      buffer.write(s[i]);
-    }
-    return buffer.toString();
-  }
-
-  /// يرتب العملاء حسب MRU (آخر شراء أولاً)، ثم الجدد حسب ترتيب الإضافة.
-  List<MockCustomer> _sortByRecency(List<MockCustomer> list) {
-    final sorted = List<MockCustomer>.from(list);
-    sorted.sort((a, b) {
-      if (a.lastUsedAt != null && b.lastUsedAt != null) {
-        return b.lastUsedAt!.compareTo(a.lastUsedAt!);
-      }
-      if (a.lastUsedAt != null && b.lastUsedAt == null) return -1;
-      if (a.lastUsedAt == null && b.lastUsedAt != null) return 1;
-      final na = int.tryParse(a.id.replaceFirst('c', '')) ?? 0;
-      final nb = int.tryParse(b.id.replaceFirst('c', '')) ?? 0;
-      return na.compareTo(nb);
-    });
-    return sorted;
-  }
-
   @override
   Widget build(BuildContext context) {
     return Directionality(
@@ -112,10 +57,7 @@ class _CustomerSelectionScreenState extends State<CustomerSelectionScreen> {
         backgroundColor: kScaffoldBg,
         appBar: AppBar(
           backgroundColor: Colors.transparent,
-          elevation: 0,
-          centerTitle: true,
-          toolbarHeight: 70,
-          leadingWidth: 70,
+          elevation: 0, centerTitle: true, toolbarHeight: 70, leadingWidth: 70,
           leading: Center(
             child: InkWell(
               onTap: () => Navigator.pop(context),
@@ -132,22 +74,20 @@ class _CustomerSelectionScreenState extends State<CustomerSelectionScreen> {
         body: ListenableBuilder(
           listenable: DataService.instance,
           builder: (context, _) {
-            final customers = _sortByRecency(
-              DataService.instance.searchCustomers(_searchQuery),
-            );
+            final customers = DataService.instance.searchCustomersByRecency(_searchQuery);
             return Column(
               children: [
                 const SizedBox(height: 10),
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 10),
                   child: Container(
-                    decoration: _neumorphicDecoration(),
+                    decoration: _neumorphicDecoration(radius: 12),
                     child: TextField(
                       controller: _searchController,
                       style: const TextStyle(color: kTextPrimary, fontSize: 14),
                       onChanged: (v) => setState(() => _searchQuery = v),
                       decoration: InputDecoration(
-                        hintText: 'ابحث بالاسم...',
+                        hintText: 'ابحث عن عميل...',
                         hintStyle: const TextStyle(color: kTextSecondary, fontSize: 13),
                         prefixIcon: const Icon(Icons.search, color: kTextSecondary, size: 20),
                         suffixIcon: _searchQuery.isEmpty ? null : IconButton(
@@ -164,12 +104,17 @@ class _CustomerSelectionScreenState extends State<CustomerSelectionScreen> {
                 const SizedBox(height: 10),
                 Expanded(
                   child: customers.isEmpty
-                      ? const Center(child: Text('لا توجد نتائج. جرّب كلمة بحث أخرى.', style: TextStyle(color: kTextSecondary, fontSize: 14)))
+                      ? const Center(child: Text('لا توجد نتائج', style: TextStyle(color: kTextSecondary)))
                       : ListView.separated(
-                          padding: const EdgeInsets.symmetric(horizontal: 10),
+                          padding: const EdgeInsets.fromLTRB(10, 0, 10, 100),
                           itemCount: customers.length,
-                          separatorBuilder: (_, __) => const SizedBox(height: 10),
-                          itemBuilder: (context, index) => _buildCustomerCard(customers[index], index),
+                          separatorBuilder: (_, __) => const SizedBox(height: 8),
+                          itemBuilder: (context, index) {
+                            return AnimatedListItem(
+                              index: index,
+                              child: _buildCustomerCard(customers[index]),
+                            );
+                          },
                         ),
                 ),
               ],
@@ -177,83 +122,78 @@ class _CustomerSelectionScreenState extends State<CustomerSelectionScreen> {
           },
         ),
         floatingActionButton: Padding(
-          padding: const EdgeInsets.only(bottom: 24.0, left: 16.0),
-          child: FloatingActionButton(
-            onPressed: _openAddCustomer,
-            backgroundColor: const Color(0xFF0D47A1),
-            foregroundColor: Colors.white,
-            elevation: 0,
-            shape: const CircleBorder(),
-            child: const Icon(Icons.person_add),
-          ),
+          padding: const EdgeInsets.only(bottom: 20.0, left: 16.0, right: 16.0),
+          child: _buildAddCustomerButton(),
         ),
+        floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
       ),
     );
   }
 
-  Widget _buildCustomerCard(MockCustomer customer, int index) {
-    final needsPhoneAlert = (customer.primaryPhone == null || customer.primaryPhone!.isEmpty) && customer.pendingAmount >= 25000;
+  Widget _buildAddCustomerButton() {
+    return Container(
+      width: double.infinity,
+      height: 56,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [BoxShadow(color: kPrimaryDark.withOpacity(0.4), blurRadius: 12, offset: const Offset(0, 6))],
+      ),
+      child: ElevatedButton.icon(
+        onPressed: _openAddCustomer,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: kPrimaryDark,
+          foregroundColor: Colors.white,
+          elevation: 0,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+            side: BorderSide(color: Colors.white.withOpacity(0.2), width: 1),
+          ),
+        ),
+        icon: const Icon(Icons.person_add, size: 22),
+        label: const Text('إضافة عميل جديد', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+      ),
+    );
+  }
 
-    return AnimatedListItem(
-      index: index,
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          borderRadius: BorderRadius.circular(16),
-          onTap: () => Navigator.pop(context, customer.primaryName),
-          child: Container(
-            padding: const EdgeInsets.all(12),
-            decoration: _neumorphicDecoration(),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
+  Widget _buildCustomerCard(MockCustomer customer) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12),
+        onTap: () => Navigator.pop(context, CustomerSelectionResult(id: customer.id)),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+          decoration: _neumorphicDecoration(radius: 12),
+          child: Row(
+            children: [
+              Container(
+                width: 40, height: 40,
+                decoration: BoxDecoration(color: kPrimary.withOpacity(0.15), shape: BoxShape.circle),
+                alignment: Alignment.center,
+                child: Text(customer.primaryName.characters.first, style: const TextStyle(color: kPrimary, fontSize: 18, fontWeight: FontWeight.bold)),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Container(
-                      width: 50, height: 50,
-                      decoration: BoxDecoration(color: kPrimary.withOpacity(0.15), shape: BoxShape.circle),
-                      alignment: Alignment.center,
-                      child: Text(customer.primaryName.characters.first, style: const TextStyle(color: kPrimary, fontSize: 20, fontWeight: FontWeight.bold)),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(customer.primaryName, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
-                          if (customer.aliases.isNotEmpty)
-                            Text(customer.aliases.join('، '), style: const TextStyle(color: kTextSecondary, fontSize: 12)),
-                          if (customer.pendingOps > 0)
-                            Padding(
-                              padding: const EdgeInsets.only(top: 4),
-                              child: Text('${customer.pendingOps} عمليات — ${_formatAmount(customer.pendingAmount)} د.ع', style: const TextStyle(color: kTextSecondary, fontSize: 13)),
-                            ),
-                        ],
-                      ),
-                    ),
-                    if (needsPhoneAlert)
-                      TextButton(
-                        onPressed: () => _showAddPhoneDialog(customer),
-                        style: TextButton.styleFrom(
-                          backgroundColor: kPrimary.withOpacity(0.15),
-                          foregroundColor: kPrimary,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    Text(customer.primaryName, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+                    if (customer.aliases.isNotEmpty)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 3),
+                        child: Text(
+                          customer.aliases.join('، '),
+                          style: const TextStyle(color: kTextSecondary, fontSize: 12),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
-                        child: const Text('أضف', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
                       ),
                   ],
                 ),
-                if (needsPhoneAlert)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 8),
-                    child: Text(
-                      'تنبيه: أضف رقم الهاتف — مبيعاته تجاوزت (25,000 د.ع)',
-                      style: TextStyle(color: const Color(0xFFE53935), fontSize: 12, fontWeight: FontWeight.w600),
-                      textAlign: TextAlign.right,
-                    ),
-                  ),
-              ],
-            ),
+              ),
+              if (customer.isVip)
+                const Icon(Icons.star, color: Colors.amber, size: 20),
+            ],
           ),
         ),
       ),

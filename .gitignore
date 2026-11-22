@@ -1,0 +1,32 @@
+# Flutter / Dart
+.dart_tool/
+.packages
+.pub/
+.pub-cache/
+.flutter-plugins
+.flutter-plugins-dependencies
+
+# Build files
+build/
+coverage/
+
+# Logs
+*.log
+
+# Backup files
+*.bak
+*.tmp
+
+# Android
+android/.gradle/
+android/local.properties
+
+# iOS
+ios/Flutter/.last_build_id
+ios/Flutter/Generated.xcconfig
+ios/Flutter/flutter_export_environment.sh
+
+# Generated desktop files
+linux/flutter/ephemeral/
+windows/flutter/ephemeral/
+macos/Flutter/ephemeral/
